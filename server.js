@@ -41,10 +41,32 @@ console.log('🔌 Supabase client initialized');
 
 // Middleware
 app.use(helmet());
+
+// CORS configuration - allow frontend origins
+const allowedOrigins = [
+  'http://localhost:8081', // Expo development server
+  'http://localhost:3000', // React development server  
+  'http://localhost:19006', // Expo web development
+  'https://civic-rezo-frontend.netlify.app', // Production Netlify URL (placeholder)
+  process.env.FRONTEND_URL // Allow custom frontend URL from environment
+].filter(Boolean);
+
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production' 
-    ? [process.env.FRONTEND_URL].filter(Boolean)
-    : true, // Allow all origins in development
+  origin: (origin, callback) => {
+    // Allow requests with no origin (mobile apps, Postman, etc.)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    
+    // In development, allow all origins
+    if (process.env.NODE_ENV !== 'production') {
+      return callback(null, true);
+    }
+    
+    callback(new Error('Not allowed by CORS'));
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
