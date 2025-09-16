@@ -877,10 +877,16 @@ class LocationPriorityService {
       let emotionScore = 0;
       console.log(`🔍 DEBUG: Checking emotion analysis conditions...`);
       console.log(`🔍 DEBUG: complaintData.description = "${complaintData.description}"`);
-      console.log(`🔍 DEBUG: typeof complaintData.description = ${typeof complaintData.description}`);
-      console.log(`🔍 DEBUG: Boolean check = ${Boolean(complaintData.description)}`);
+      console.log(`🔍 DEBUG: complaintData.emotionAnalysis =`, complaintData.emotionAnalysis);
       
-      if (complaintData.description) {
+      // Use provided emotion analysis if available (from frontend)
+      if (complaintData.emotionAnalysis && complaintData.emotionAnalysis.score) {
+        console.log('✨ Using pre-calculated emotion analysis from frontend...');
+        emotionScore = complaintData.emotionAnalysis.score * 100; // Convert from 0-1 to 0-100 scale
+        console.log(`🧠 [ALGORITHM 3/4] Emotion Analysis Score: ${emotionScore.toFixed(2)}% (frontend pre-calculated, method: ${complaintData.emotionAnalysis.analysisMethod})`);
+      }
+      // Fallback to real-time emotion analysis
+      else if (complaintData.description) {
         try {
           console.log('🧠 Analyzing emotion for complaint text...');
           
@@ -899,14 +905,14 @@ class LocationPriorityService {
           const rawEmotionScore = emotionData.emotionScore || 0;
           emotionScore = rawEmotionScore * 100; // Convert from 0-1 range to 0-100 percentage
           
-          console.log(`🧠 [ALGORITHM 3/4] Emotion Analysis Score: ${emotionScore.toFixed(2)}% (raw: ${rawEmotionScore.toFixed(4)}, method: ${emotionData.analysisMethod})`);
+          console.log(`🧠 [ALGORITHM 3/4] Emotion Analysis Score: ${emotionScore.toFixed(2)}% (real-time API, method: ${emotionData.analysisMethod})`);
         } catch (emotionError) {
           console.warn('⚠️ Emotion analysis failed:', emotionError.message);
           // Fallback to basic keyword analysis
           emotionScore = this.getBasicEmotionScore(complaintData.description);
         }
       } else {
-        console.log('🔍 DEBUG: Emotion analysis skipped - no description provided');
+        console.log('🔍 DEBUG: Emotion analysis skipped - no description or emotion data provided');
       }
       
       // 2. Vote count (more votes = higher priority)

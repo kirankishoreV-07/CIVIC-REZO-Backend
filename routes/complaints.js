@@ -92,9 +92,14 @@ router.post('/submit', async (req, res) => {
       imageUrl,
       imageValidation,
       locationData,
+      emotionAnalysis,
       userId = 'anonymous',
       userType = 'citizen'
     } = req.body;
+    
+    // Debug logging for emotion analysis
+    console.log('🔍 DEBUG: emotionAnalysis received:', emotionAnalysis);
+    console.log('🔍 DEBUG: typeof emotionAnalysis:', typeof emotionAnalysis);
     
     // Input validation
     if (!title || !description || !category || !locationData) {
@@ -110,7 +115,8 @@ router.post('/submit', async (req, res) => {
       imageValidation,
       locationData,
       category,
-      description
+      description,
+      emotionAnalysis
     });
     
     // Generate a proper UUID for demo users or use the provided userId if it's in UUID format
@@ -273,7 +279,8 @@ router.post('/submit', async (req, res) => {
       // For numeric fields with precision 3, scale 2, values must be < 10^1 (i.e., < 10)
       priority_score: parseFloat((priorityAnalysis.totalScore).toFixed(2)),
       location_sensitivity_score: parseFloat((priorityAnalysis.locationScore).toFixed(2)),
-      emotion_score: imageValidation?.confidence ? parseFloat((imageValidation.confidence).toFixed(2)) : 0.5,
+      emotion_score: emotionAnalysis?.score ? parseFloat((emotionAnalysis.score).toFixed(2)) : 
+                     (imageValidation?.confidence ? parseFloat((imageValidation.confidence).toFixed(2)) : 0.5),
       
       // Add AI confidence score if available
       ai_confidence_score: imageValidation?.modelConfidence ? 
@@ -431,7 +438,7 @@ router.post('/submit', async (req, res) => {
 /**
  * Calculate comprehensive priority score combining image and location analysis
  */
-async function calculateComprehensivePriority({ imageValidation, locationData, category, description }) {
+async function calculateComprehensivePriority({ imageValidation, locationData, category, description, emotionAnalysis }) {
   const startTime = Date.now();
   
   try {
@@ -442,12 +449,15 @@ async function calculateComprehensivePriority({ imageValidation, locationData, c
     if (locationData && locationData.latitude && locationData.longitude) {
       try {
         // Use our new method from LocationPriorityService
+        console.log('🔍 DEBUG: Passing emotionAnalysis to LocationPriorityService:', JSON.stringify(emotionAnalysis, null, 2));
+        
         priorityResult = await locationPriorityService.calculateComprehensivePriority(
           locationData.latitude,
           locationData.longitude,
           imageValidation || {},
           {
             complaintType: category,
+            description: description,
             created_at: new Date().toISOString(),
             status: 'pending',
             votes: 0,
@@ -456,7 +466,8 @@ async function calculateComprehensivePriority({ imageValidation, locationData, c
               radiusM: locationData.accuracy,
               precision: locationData.precision,
               description: locationData.description
-            }
+            },
+            emotionAnalysis: emotionAnalysis || null
           }
         );
         
@@ -1311,7 +1322,8 @@ router.post('/calculate-priority', async (req, res) => {
       category,
       description,
       imageValidation,
-      locationData
+      locationData,
+      emotionAnalysis
     } = req.body;
     
     // Basic validation
@@ -1328,7 +1340,8 @@ router.post('/calculate-priority', async (req, res) => {
       imageValidation,
       locationData,
       category,
-      description
+      description,
+      emotionAnalysis
     });
     
     // Format response for frontend

@@ -36,9 +36,9 @@ class EmotionAnalysisService {
       },
       ta: { // Tamil - Comprehensive keywords
         anger: ['கோபம்', 'எரிச்சல்', 'சீற்றம்', 'வெறுப்பு', 'கோபமாக', 'எரிச்சலாக', 'கோபப்படுகிறேன்', 'வெறுக்கிறேன்'],
-        urgency: ['அவசரம்', 'உடனடி', 'ஆபத்து', 'முக்கியம்', 'அவசரமாக', 'உடனடியாக', 'ஆபத்தான', 'அவசர', 'மரணம்', 'விபத்து', 'உயிருக்கு ஆபத்து', 'பெரிய', 'மிகப்பெரிய', 'பிரச்சனை'],
+        urgency: ['அவசரம்', 'உடனடி', 'ஆபத்து', 'முக்கியம்', 'அவசரமாக', 'உடனடியாக', 'ஆபத்தான', 'அவசர', 'மரணம்', 'விபத்து', 'உயிருக்கு ஆபத்து', 'பெரிய', 'மிகப்பெரிய', 'பிரச்சனை', 'சீக்கிரம்', 'சீக்கிரமாக', 'உயிரிழப்பு', 'உயிரிழப்புகள்', 'மரணங்கள்', 'இறப்பு', 'இறப்புகள்', 'உருவாகிறது', 'நடக்கிறது', 'ஏற்படுகிறது'],
         frustration: ['வருத்தம்', 'ஏமாற்றம்', 'வருத்தமாக', 'ஏமாற்றமாக', 'கஷ்டம்', 'துன்பம்', 'வேதனை', 'சோகம்'],
-        concern: ['கவலை', 'பயம்', 'கவலையாக', 'பயமாக', 'வேவலை', 'சிந்தனை', 'பரிவு', 'கவனம்', 'உளைச்சல்', 'நெருக்கடி', 'தேவை', 'சிக்கல்']
+        concern: ['கவலை', 'பயம்', 'கவலையாக', 'பயமாக', 'வேவலை', 'சிந்தனை', 'பரிவு', 'கவனம்', 'உளைச்சல்', 'நெருக்கடி', 'தேவை', 'சிக்கல்', 'ஏனென்றால்', 'காரணம்', 'நிறைய', 'அதிகமாக']
       }
     };
   }
@@ -303,16 +303,37 @@ class EmotionAnalysisService {
     const emotions = { anger: 0, urgency: 0, frustration: 0, concern: 0 };
     const textLower = text.toLowerCase();
     
+    // Critical high-impact keywords that get extra scoring
+    const criticalKeywords = {
+      ta: {
+        urgency: ['உயிரிழப்பு', 'உயிரிழப்புகள்', 'மரணம்', 'மரணங்கள்', 'இறப்பு', 'சீக்கிரமாக'],
+        concern: ['ஏனென்றால்', 'நிறைய', 'அதிகமாக']
+      },
+      en: {
+        urgency: ['death', 'deaths', 'fatal', 'emergency'],
+        concern: ['because', 'many', 'lots']
+      },
+      hi: {
+        urgency: ['मौत', 'मौतें', 'मृत्यु', 'जल्दी'],
+        concern: ['क्योंकि', 'बहुत', 'काफी']
+      }
+    };
+    
     Object.keys(emotions).forEach(emotion => {
       const emotionKeywords = keywords[emotion] || [];
+      const criticalWords = criticalKeywords[language]?.[emotion] || [];
       let score = 0;
       let matchCount = 0;
       
       emotionKeywords.forEach(keyword => {
         if (textLower.includes(keyword.toLowerCase())) {
-          score += 0.25;
+          // Check if this is a critical keyword for extra scoring
+          const isCritical = criticalWords.some(crit => keyword.toLowerCase().includes(crit.toLowerCase()));
+          const baseScore = isCritical ? 0.4 : 0.25; // Higher score for critical words
+          
+          score += baseScore;
           matchCount++;
-          console.log(`✅ Found ${emotion} keyword: "${keyword}"`);
+          console.log(`✅ Found ${emotion} keyword: "${keyword}"${isCritical ? ' (CRITICAL)' : ''}`);
         }
       });
       
